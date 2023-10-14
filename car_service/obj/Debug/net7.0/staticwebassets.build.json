@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "syB+ZSaZzk3cZ+GKJJbMtsAMLTz/PS7lJRCR74dApJc=",
+  "Source": "car_service",
+  "BasePath": "_content/car_service",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
