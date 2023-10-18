@@ -4,8 +4,8 @@ namespace car_service.Dto;
 
 public class OrderDto
 {
-    public Car Car { get; set; }
-    public Client Client { get; set; }
+    public int CarId { get; set; }
+    public int ClientId { get; set; }
     public string WorkDescription { get; set; }
     public OrderStatus Status { get; set; }
 }

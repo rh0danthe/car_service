@@ -17,6 +17,7 @@ public class CarRepository :  ICarRepository
     public async Task<Car> CreateAsync(Car car)
     {
         var dbCar = await _context.Cars.AddAsync(car);
+        await _context.SaveChangesAsync();
         return dbCar.Entity;
     }
 
@@ -53,6 +54,8 @@ public class CarRepository :  ICarRepository
         if (dbCar == null)
             throw new Exception("This ID doesn't exist");
         var res = _context.Cars.Remove(dbCar);
-        return res.State == EntityState.Deleted;
+        bool deleted = res.State == EntityState.Deleted;
+        await _context.SaveChangesAsync();
+        return deleted;
     }
 }

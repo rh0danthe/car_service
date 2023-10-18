@@ -17,6 +17,7 @@ public class OrderRepository : IOrderRepository
     public async Task<Order> CreateAsync(Order order)
     {
         var dbOrder = await _context.Orders.AddAsync(order);
+        await _context.SaveChangesAsync();
         return dbOrder.Entity;
     }
 
@@ -53,6 +54,7 @@ public class OrderRepository : IOrderRepository
         if (dbOrder == null)
             throw new Exception("This ID doesn't exist");
         var res = _context.Orders.Remove(dbOrder);
+        await _context.SaveChangesAsync();
         return res.State == EntityState.Deleted;
     }
 }

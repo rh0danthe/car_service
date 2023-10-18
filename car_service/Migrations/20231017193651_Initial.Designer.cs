@@ -12,7 +12,7 @@ using car_service.Data;
 namespace car_service.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20231014210557_Initial")]
+    [Migration("20231017193651_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

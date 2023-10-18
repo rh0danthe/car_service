@@ -1,6 +1,7 @@
 using car_service.Data;
 using car_service.Interface;
 using car_service.Repository;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,12 @@ builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 var app = builder.Build();
+
+using var scoped = app.Services.CreateScope();
+using (var dbContext = scoped.ServiceProvider.GetRequiredService<DataContext>())
+{
+    dbContext.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -17,6 +17,7 @@ public class ClientRepository : IClientRepository
     public async Task<Client> CreateAsync(Client client)
     {
         var dbClient = await _context.Clients.AddAsync(client);
+        await _context.SaveChangesAsync();
         return dbClient.Entity;
     }
 
@@ -52,6 +53,7 @@ public class ClientRepository : IClientRepository
         if (dbClient == null)
             throw new Exception("This ID doesn't exist");
         var res = _context.Clients.Remove(dbClient);
+        await _context.SaveChangesAsync();
         return res.State == EntityState.Deleted;
     }
 
