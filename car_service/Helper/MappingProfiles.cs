@@ -9,7 +9,8 @@ public class MappingProfiles : Profile
     public MappingProfiles() 
     {
         CreateMap<CarDto, Car>();
-        CreateMap<OrderDto, Order>();
+        CreateMap<OrderDto, Order>()
+            .ForMember(dest => dest.Car, opt => opt.MapFrom(src => src.CarId));
         CreateMap<ClientDto, Client>();
     }
 }

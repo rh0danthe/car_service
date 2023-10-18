@@ -16,6 +16,7 @@ public class DataContext : DbContext
         optionsBuilder.UseNpgsql(_configuration.GetConnectionString("DefaultConnection"));
     }
 
+
     public DbSet<Car> Cars { get; set; }
     public DbSet<Client> Clients { get; set; }
     public DbSet<Order> Orders { get; set; }

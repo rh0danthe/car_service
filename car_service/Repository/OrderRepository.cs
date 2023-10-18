@@ -23,7 +23,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<Order> GetByIdAsync(int orderId)
     {
-        var dbOrder = await _context.Orders.FindAsync(orderId);
+        var dbOrder = await _context.Orders.Include(nigger => nigger.Car).Include(nigger => nigger.Client).FirstOrDefaultAsync(o => o.Id == orderId);
         if (dbOrder != null)
             return dbOrder;
         throw new Exception("This ID doesn't exist");
@@ -31,7 +31,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<ICollection<Order>> GetAllAsync()
     {
-        return await _context.Orders.OrderBy(m => m.Id).ToListAsync();
+        return await _context.Orders.Include(o => o.Car).Include(o => o.Client).OrderBy(m => m.Id).ToListAsync();
     }
 
     public async Task<Order> UpdateAsync(Order order, int orderId)
