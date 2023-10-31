@@ -74,7 +74,8 @@ public class ClientController : Controller
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
         var clientMap = _mapper.Map<Client>(newClient);
-        var dbClient = await _clientRepository.UpdateAsync(clientMap, clientId);
+        clientMap!.Id = clientId;
+        var dbClient = await _clientRepository.UpdateAsync(clientMap);
         return Ok(dbClient);
     }
 

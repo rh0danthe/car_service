@@ -10,7 +10,7 @@ public class MappingProfiles : Profile
     {
         CreateMap<CarDto, Car>();
         CreateMap<OrderDto, Order>()
-            .ForMember(dest => dest.Car, opt => opt.MapFrom(src => src.CarId));
+            .ForMember(dest => dest.Car, opt => opt.MapFrom(src => new Car { Id = src.CarId }));
         CreateMap<ClientDto, Client>();
     }
 }
