@@ -71,6 +71,14 @@
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.5.0, )"
+            },
+            "dbup": {
+              "target": "Package",
+              "version": "[5.0.37, )"
+            },
+            "dbup-postgresql": {
+              "target": "Package",
+              "version": "[5.0.37, )"
             }
           },
           "imports": [
