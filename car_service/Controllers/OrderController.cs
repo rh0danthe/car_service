@@ -67,9 +67,10 @@ public class OrderController : Controller
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
         var orderMap = _mapper.Map<Order>(newOrder);
+        orderMap!.Id = orderId;
         orderMap.Car = await _carRepository.GetByIdAsync(newOrder.CarId);
         orderMap.Client = await _clientRepository.GetByIdAsync(newOrder.ClientId);
-        var dbOrder = await _orderRepository.UpdateAsync(orderMap, orderId);
+        var dbOrder = await _orderRepository.UpdateAsync(orderMap);
         return Ok(dbOrder);
     }
 

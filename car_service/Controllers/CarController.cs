@@ -60,7 +60,8 @@ public class CarController : Controller
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
         var carMap = _mapper.Map<Car>(newCar);
-        var dbCar = await _carRepository.UpdateAsync(carMap, carId);
+        carMap!.Id = carId;
+        var dbCar = await _carRepository.UpdateAsync(carMap);
         return Ok(dbCar);
     }
 

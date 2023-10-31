@@ -1,60 +1,89 @@
-﻿using car_service.Data;
-using car_service.Entities;
+﻿using car_service.Entities;
 using car_service.Interface;
-using Microsoft.EntityFrameworkCore;
+using Dapper;
+using Microsoft.Data.SqlClient;
+using Npgsql;
 
 namespace car_service.Repository;
 
 public class OrderRepository : IOrderRepository
 {
-    private readonly DataContext _context;
+    private string connectionString;
     
-    public OrderRepository(DataContext context) 
+    public OrderRepository(IConfiguration config) 
     { 
-        _context = context;
+        connectionString = config.GetConnectionString("DefaultConnection");
     }
     
     public async Task<Order> CreateAsync(Order order)
     {
-        var dbOrder = await _context.Orders.AddAsync(order);
-        await _context.SaveChangesAsync();
-        return dbOrder.Entity;
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var query = "INSERT INTO \"Orders\" (\"CarId\", \"ClientId\", \"AcceptanceTime\", \"WorkDescription\", \"Status\") VALUES(@CarId, @ClientId, @AcceptanceTime, @WorkDescription, @Status) RETURNING *";
+            var parameters = new { CarId = order.Car.Id, ClientId = order.Client.Id, AcceptanceTime = order.AcceptanceTime, WorkDescription = order.WorkDescription, Status = order.Status };
+            return await db.QueryFirstOrDefaultAsync<Order>(query, parameters);
+        }
     }
 
     public async Task<Order> GetByIdAsync(int orderId)
     {
-        var dbOrder = await _context.Orders.Include(nigger => nigger.Car).Include(nigger => nigger.Client).FirstOrDefaultAsync(o => o.Id == orderId);
-        if (dbOrder != null)
-            return dbOrder;
-        throw new Exception("This ID doesn't exist");
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            string query = "SELECT * FROM \"Orders\" WHERE \"Id\" = @id";
+            var parameters = new { id = orderId };
+            return await db.QueryFirstOrDefaultAsync<Order>(query, parameters);
+        }
     }
 
     public async Task<ICollection<Order>> GetAllAsync()
     {
-        return await _context.Orders.Include(o => o.Car).Include(o => o.Client).OrderBy(m => m.Id).ToListAsync();
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+
+            var query = @"
+            SELECT o.*, c.*, cl.*
+            FROM ""Orders"" o
+            LEFT JOIN ""Cars"" c ON o.""CarId"" = c.""Id""
+            LEFT JOIN ""Clients"" cl ON o.""ClientId"" = cl.""Id""";
+
+            var orders = await db.QueryAsync<Order, Car, Client, Order>(
+                query,
+                (order, car, client) =>
+                {
+                    order.Car = car;
+                    order.Client = client;
+                    return order;
+                },
+                splitOn: "Id,Id"
+            );
+
+            return orders.ToList();
+        }
     }
 
-    public async Task<Order> UpdateAsync(Order order, int orderId)
+    public async Task<Order> UpdateAsync(Order order)
     {
-        var dbOrder = await _context.Orders.FindAsync(orderId);
-        if (dbOrder == null)
-            throw new Exception("This ID doesn't exist");
-        dbOrder.Car = order.Car;
-        dbOrder.Client = order.Client;
-        dbOrder.WorkDescription = order.WorkDescription;
-        dbOrder.AcceptanceTime = order.AcceptanceTime;
-        dbOrder.Status = order.Status;
-        await _context.SaveChangesAsync();
-        return dbOrder;
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var query =
+                "UPDATE \"Orders\" SET \"CarId\" = @CarId, \"ClientId\" = @ClientId, \"AcceptanceTime\" = @AcceptanceTime, \"WorkDescription\" = @WorkDescription, \"Status\" = @Status WHERE \"Id\" = @Id RETURNING *";
+            var parameters = new { CarId = order.Car.Id, ClientId = order.Client.Id, AcceptanceTime = order.AcceptanceTime, WorkDescription = order.WorkDescription, Status = order.Status };
+            return await db.QueryFirstOrDefaultAsync<Order>(query, parameters);
+        }
     }
 
     public async Task<bool> DeleteAsync(int orderId)
     {
-        var dbOrder = await _context.Orders.FindAsync(orderId);
-        if (dbOrder == null)
-            throw new Exception("This ID doesn't exist");
-        var res = _context.Orders.Remove(dbOrder);
-        await _context.SaveChangesAsync();
-        return res.State == EntityState.Deleted;
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var query = "DELETE FROM \"Orders\" WHERE \"Id\" = @id";
+            var res = await db.ExecuteAsync(query, new { id = orderId });
+            return res > 0;
+        }
     }
 }

@@ -1,75 +1,92 @@
-﻿using car_service.Data;
-using car_service.Entities;
+﻿using car_service.Entities;
 using car_service.Interface;
-using Microsoft.EntityFrameworkCore;
+using Dapper;
+using Microsoft.Data.SqlClient;
+using Npgsql;
 
 namespace car_service.Repository;
 
 public class ClientRepository : IClientRepository
 {
-    private readonly DataContext _context;
+    private string connectionString;
     
-    public ClientRepository(DataContext context) 
+    public ClientRepository(IConfiguration config) 
     { 
-        _context = context;
+        connectionString = config.GetConnectionString("DefaultConnection");
     }
     
     public async Task<Client> CreateAsync(Client client)
     {
-        var dbClient = await _context.Clients.AddAsync(client);
-        await _context.SaveChangesAsync();
-        return dbClient.Entity;
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var query = "INSERT INTO \"Clients\" (\"Name\", \"Surname\", \"Adress\", \"PhoneNumber\") VALUES(@Name, @Surname, @Adress, @PhoneNumber) RETURNING *";
+            return await db.QueryFirstOrDefaultAsync<Client>(query, client);
+        }
     }
 
     public async Task<Client> GetByIdAsync(int clientId)
     {
-        var dbClient = await _context.Clients.FindAsync(clientId);
-        if (dbClient != null)
-            return dbClient;
-        throw new Exception("This ID doesn't exist");
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            string query = "SELECT * FROM \"Clients\" WHERE \"Id\" = @id";
+            var parameters = new { id = clientId };
+            return await db.QueryFirstOrDefaultAsync<Client>(query, parameters);
+        }
     }
 
     public async Task<ICollection<Client>> GetAllAsync()
     {
-        return await _context.Clients.OrderBy(m => m.Id).ToListAsync();
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var clients = await db.QueryAsync<Client>("SELECT * FROM \"Clients\"");
+            return clients.ToList();
+        }
     }
 
-    public async Task<Client> UpdateAsync(Client client, int clientId)
+    public async Task<Client> UpdateAsync(Client client)
     {
-        var dbClient = await _context.Clients.FindAsync(clientId);
-        if (dbClient == null)
-            throw new Exception("This ID doesn't exist");
-        dbClient.Adress = client.Adress;
-        dbClient.Name = client.Name;
-        dbClient.Surname = client.Surname;
-        dbClient.PhoneNumber = client.PhoneNumber;
-        await _context.SaveChangesAsync();
-        return dbClient;
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var query =
+                "UPDATE \"Clients\" SET \"Name\" = @Name, \"Surname\" = @Surname, \"Adress\" = @Adress, \"PhoneNumber\" = @PhoneNumber WHERE \"Id\" = @Id RETURNING *";
+            return await db.QueryFirstOrDefaultAsync<Client>(query, client);
+        }
     }
 
     public async Task<bool> DeleteAsync(int clientId)
     {
-        var dbClient = await _context.Clients.FindAsync(clientId);
-        if (dbClient == null)
-            throw new Exception("This ID doesn't exist");
-        var res = _context.Clients.Remove(dbClient);
-        await _context.SaveChangesAsync();
-        return res.State == EntityState.Deleted;
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var query = "DELETE FROM \"Clients\" WHERE \"Id\" = @id";
+            var res = await db.ExecuteAsync(query, new { id = clientId });
+            return res > 0;
+        }
     }
 
     public async Task<ICollection<Car>> GetCarsAsync(int clientId)
     {
-        var dbClient = await _context.Clients.FindAsync(clientId);
-        if (dbClient == null)
-            throw new Exception("This ID doesn't exist");
-        return await _context.Orders.Where(o => o.Client.Id == dbClient.Id).Select(o => o.Car).ToListAsync();
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var query =
+                "SELECT \"Cars\".* FROM \"Orders\" JOIN \"Cars\" ON \"Orders\".\"CarId\" = \"Cars\".\"Id\" WHERE \"Orders\".\"ClientId\" = @ClientId";
+            var cars = await db.QueryAsync<Car>(query, new {ClientId = clientId});
+            return cars.ToList();
+        }
     }
 
     public async Task<ICollection<Order>> GetOrdersAsync(int clientId)
     {
-        var dbClient = await _context.Clients.FindAsync(clientId);
-        if (dbClient == null)
-            throw new Exception("This ID doesn't exist");
-        return await _context.Orders.Where(o => o.Client.Id == dbClient.Id).ToListAsync();
+        await using (var db = new NpgsqlConnection(connectionString))
+        {
+            await db.OpenAsync();
+            var orders = await db.QueryAsync<Order>("SELECT * FROM \"Orders\" WHERE \"ClientId\" = @ClientId", new {ClientId = clientId});
+            return orders.ToList();
+        }
     }
 }
